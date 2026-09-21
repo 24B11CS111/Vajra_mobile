@@ -249,6 +249,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   subtitle: 'Check backend connectivity, DB, and SSE streaming status.',
                   onTap: () => context.push('/diagnostics'),
                 ),
+                const SizedBox(height: 12),
+                _buildNavigationCard(
+                  icon: LucideIcons.smartphone,
+                  title: 'Phone Capabilities',
+                  subtitle: 'Inspect installed app verification, deep actions, & intent routing.',
+                  onTap: () => context.push('/capabilities'),
+                ),
                 const SizedBox(height: 32),
 
                 // Section: Account & Logout

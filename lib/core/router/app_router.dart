@@ -17,6 +17,7 @@ import '../../features/notifications/presentation/notifications_screen.dart';
 import '../../features/profile/presentation/privacy_screen.dart';
 import '../../features/profile/presentation/activity_log_screen.dart';
 import '../../features/profile/presentation/diagnostics_screen.dart';
+import '../../features/profile/presentation/mobile_capabilities_screen.dart';
 import '../../features/profile/presentation/settings_screen.dart';
 import 'scaffold_with_nav_bar.dart';
 
@@ -95,6 +96,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/diagnostics',
         builder: (context, state) => const DiagnosticsScreen(),
+      ),
+      GoRoute(
+        path: '/capabilities',
+        builder: (context, state) => const MobileCapabilitiesScreen(),
       ),
       GoRoute(
         path: '/settings',

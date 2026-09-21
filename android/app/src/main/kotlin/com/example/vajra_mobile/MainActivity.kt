@@ -45,6 +45,11 @@ class MainActivity : FlutterActivity() {
             initializeImmediately()
         }
 
+        // Register Siri-like Assistant Platform Services
+        VajraCallService(this).register(flutterEngine.dartExecutor.binaryMessenger)
+        VajraNotificationListener.registerChannel(flutterEngine.dartExecutor.binaryMessenger, this)
+        VajraDeviceControlService(this).register(flutterEngine.dartExecutor.binaryMessenger)
+
         createNotificationChannel()
 
         // 1. Calendar Channel

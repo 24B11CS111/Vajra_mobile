@@ -23,6 +23,7 @@ class VoiceEngine extends StateNotifier<VoiceSessionState> {
 
   Timer? _listeningTimeoutTimer;
   Timer? _processingTimeoutTimer;
+  int _activeTtsGeneration = 0;
 
   VoiceEngine([
     DevicePermissionService? permissionService,
@@ -56,6 +57,19 @@ class VoiceEngine extends StateNotifier<VoiceSessionState> {
   }
 
   void _handlePlatformEvent(VoicePlatformEvent event) {
+    // Barge-in: if user starts speaking while TTS is speaking, stop speech immediately
+    if (state.isSpeaking && (event is VoiceSpeechStartEvent || event is VoicePartialResultEvent)) {
+      debugPrint('[VAJRA_VOICE] In-stream barge-in detected! Halting active TTS.');
+      _ttsService.stop();
+      state = state.copyWith(
+        status: VoiceState.listening,
+        bargeInCounter: state.bargeInCounter + 1,
+        session: state.session?.copyWith(
+          bargeInCount: (state.session?.bargeInCount ?? 0) + 1,
+        ),
+      );
+    }
+
     if (event is VoiceReadyEvent) {
       state = state.copyWith(
         status: VoiceState.listening,
@@ -150,10 +164,22 @@ class VoiceEngine extends StateNotifier<VoiceSessionState> {
     }
   }
 
-  /// Starts listening for speech with contextual runtime permission check.
+  /// Starts listening for speech with contextual runtime permission check and barge-in capability.
   Future<void> startListening({String? locale}) async {
     try {
       _cancelTimers();
+
+      // Barge-in: if currently speaking, abort speech immediately
+      if (state.isSpeaking) {
+        debugPrint('[VAJRA_VOICE] Barge-in activated via startListening: stopping active TTS.');
+        await stopSpeech();
+        state = state.copyWith(
+          bargeInCounter: state.bargeInCounter + 1,
+          session: state.session?.copyWith(
+            bargeInCount: (state.session?.bargeInCount ?? 0) + 1,
+          ),
+        );
+      }
 
       // 1. Contextual permission check
       final permStatus = await _permissionService.checkStatus(DevicePermissionType.microphone);
@@ -261,9 +287,11 @@ class VoiceEngine extends StateNotifier<VoiceSessionState> {
       soundLevel: 0.0,
     );
 
+    final gen = ++_activeTtsGeneration;
     try {
-      debugPrint('[VAJRA_TTS] VoiceEngine.speak: invoking native TTS with ${cleaned.length} chars');
+      debugPrint('[VAJRA_TTS] VoiceEngine.speak: invoking native TTS with ${cleaned.length} chars (gen: $gen)');
       final success = await _ttsService.speak(cleaned);
+      if (_activeTtsGeneration != gen) return false;
       if (!success) {
         if (mounted) {
           state = state.copyWith(
@@ -298,6 +326,7 @@ class VoiceEngine extends StateNotifier<VoiceSessionState> {
 
   /// Stops ongoing TTS playback immediately and resets state to idle.
   Future<void> stopSpeech() async {
+    _activeTtsGeneration++;
     try {
       await _ttsService.stop();
     } catch (e) {
@@ -309,7 +338,9 @@ class VoiceEngine extends StateNotifier<VoiceSessionState> {
   }
 
   /// Interrupts ongoing speech or recognition immediately.
-  void interrupt() {
+  /// If [toInterrupted] is true, sets status to [VoiceState.interrupted].
+  /// Otherwise resets to idle for backward compatibility.
+  void interrupt({bool toInterrupted = false}) {
     if (state.isSpeaking) {
       stopSpeech();
     }
@@ -317,13 +348,23 @@ class VoiceEngine extends StateNotifier<VoiceSessionState> {
       cancelListening();
     }
     if (mounted) {
-      state = state.copyWith(status: VoiceState.idle);
+      state = state.copyWith(
+        status: toInterrupted ? VoiceState.interrupted : VoiceState.idle,
+        bargeInCounter: state.bargeInCounter + 1,
+      );
     }
+  }
+
+  /// Triggers an explicit barge-in event, interrupting output and transitioning to interrupted state.
+  void bargeIn() {
+    interrupt(toInterrupted: true);
   }
 
   /// Resumes from interrupted state.
   void resume() {
-    state = state.copyWith(status: VoiceState.idle);
+    if (mounted) {
+      state = state.copyWith(status: VoiceState.idle);
+    }
   }
 
   /// Opens application settings so the user can grant microphone permissions.

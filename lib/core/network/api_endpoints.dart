@@ -37,4 +37,8 @@ class ApiEndpoints {
   static const String subjects = '/study/subjects';
   static const String assignments = '/study/assignments';
   static const String calendarEvents = '/calendar/events';
+  static const String devices = '/devices';
+  static const String registerDevice = '/devices/register';
+  static const String pendingActions = '/devices/actions/pending';
+  static const String dispatchAction = '/devices/actions/dispatch';
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/theme/vajra_colors.dart';
@@ -84,6 +85,18 @@ class DiagnosticsScreen extends StatelessWidget {
                 statusColor: const Color(0xFF10B981),
                 details: 'AndroidKeyStore hardware encryption enabled',
                 icon: LucideIcons.shieldCheck,
+              ),
+              const SizedBox(height: 12),
+              InkWell(
+                onTap: () => context.push('/capabilities'),
+                borderRadius: BorderRadius.circular(16),
+                child: _buildMetricCard(
+                  title: 'Phone App Engine',
+                  status: 'VERIFIED (8 Apps)',
+                  statusColor: const Color(0xFF10B981),
+                  details: 'Tap to view app registry, deep actions & intents →',
+                  icon: LucideIcons.smartphone,
+                ),
               ),
             ],
           ),
